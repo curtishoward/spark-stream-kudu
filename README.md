@@ -1,1 +1,1 @@
-# spark_streaming_kudu_examples
+# spark_stream_to_kudu
