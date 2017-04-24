@@ -14,20 +14,20 @@ import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Duration;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.streaming.kafka.KafkaUtils;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.spark.streaming.kafka.KafkaUtils;   //?
+import org.apache.hadoop.conf.Configuration;  //?
 import org.apache.spark.sql.DataFrame;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SQLContext;
-import org.apache.spark.sql.types.DataTypes; 
-import org.apache.spark.sql.types.StructField; 
-import org.apache.spark.sql.types.StructType; 
+import org.apache.spark.sql.types.DataTypes;    //?
+import org.apache.spark.sql.types.StructField;  //?
+import org.apache.spark.sql.types.StructType;   //?
 import org.apache.spark.sql.RowFactory;
 
 import java.util.Iterator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Arrays;
+import java.util.HashMap; // ?
+import java.util.HashSet; // ?
+import java.util.Arrays;  // ?
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -58,10 +58,10 @@ public class KafkaToKuduJava {
     
     //@SuppressWarnings("serial")
     public static void main(String[] args) throws Exception {
-        String brokersArgument = "curtis-pa-1:9092,curtis-pa-2:9092";
-        String topicsArgument = "traffic";
-        final String kuduConnectionArgument = "curtis-pa-2:7051";
-        final String kuduTableArgument = "impala::default.traffic_conditions";
+        //String brokersArgument = "curtis-pa-1:9092,curtis-pa-2:9092";
+        //String topicsArgument = "traffic";
+        //final String kuduConnectionArgument = "curtis-pa-2:7051";
+        //final String kuduTableArgument = "impala::default.traffic_conditions";
       
         JavaSparkContext sc = new JavaSparkContext(new SparkConf());
         JavaStreamingContext ssc = new JavaStreamingContext(sc, new Duration(5000));
@@ -69,9 +69,10 @@ public class KafkaToKuduJava {
         final KuduContext kuduContext = new KuduContext("curtis-pa-2.vpc.cloudera.com:7051");   
 
         Map<String, String> params = new HashMap<>();
-        params.put("metadata.broker.list", brokersArgument);
-        Set<String> topics = new HashSet<>(Arrays.asList(topicsArgument.split(","))); 
-        
+        params.put("metadata.broker.list", "curtis-pa-1:9092,curtis-pa-2:9092");
+        //Set<String> topics = new HashSet<>(Arrays.asList(topicsArgument.split(",")));
+        Set<String> topics = new HashSet<String>(Arrays.asList("traffic"));
+
         JavaPairDStream<String, String> dstream = KafkaUtils.createDirectStream(
                 ssc, String.class, String.class, StringDecoder.class, StringDecoder.class, params, topics);
         JavaPairDStream<String, String> windowedStream = dstream.window(new Duration(60000));
@@ -79,34 +80,30 @@ public class KafkaToKuduJava {
         windowedStream.foreachRDD(new Function<JavaPairRDD<String, String>, Void>() {
             @Override
             public Void call(JavaPairRDD<String, String> rdd) throws Exception {
-                // System.out.println(batch.collect());
-	        // Need to convert RDD to tuple then to DF then upsert into kudu
-                //JavaRDD<Tuple2<Long,Integer>> fieldsRdd = rdd.map(new Function<Tuple2<String,String>, Tuple2<Long,Integer>>() {
                 JavaRDD<Row> fieldsRdd = rdd.map(new Function<Tuple2<String,String>, Row>() {
                     @Override
                     public Row call(Tuple2<String, String> kafkaMessage) {
-                    //public Tuple2<Long, Integer> call(Tuple2<String, String> kafkaMessage) {
-                       //return new Tuple2<Long, Integer>(Long.parseLong(kafkaMessage._2().split(",")[0]),
-                       //                                 Integer.parseInt(kafkaMessage._2().split(",")[1]));
-                       String[] flds = kafkaMessage._2().split(",");
-		       Long measure = Long.parseLong(flds[0]);
-		       Integer vehicles = Integer.parseInt(flds[1].trim());
-     		       return RowFactory.create(measure,vehicles);
+                        String[] flds = kafkaMessage._2().split(",");
+		                Long measure = Long.parseLong(flds[0]);
+		                Integer vehicles = Integer.parseInt(flds[1].trim());
+     		            return RowFactory.create(measure,vehicles);
                     }
                 });
               
-		StructType schema = DataTypes.createStructType(new StructField[] {
+                StructType schema = DataTypes.createStructType(new StructField[] {
                     DataTypes.createStructField("measurement_time", DataTypes.LongType, false),
                     DataTypes.createStructField("number_of_vehicles", DataTypes.IntegerType, true)});
                 DataFrame df = sqlContext.createDataFrame(fieldsRdd,schema);
                 df.registerTempTable("traffic");
-		DataFrame resultsDF = sqlContext.sql("SELECT UNIX_TIMESTAMP() * 1000 as_of_time, ROUND(AVG(number_of_vehicles), 2) avg_num_veh, MIN(number_of_vehicles) min_num_veh, MAX(number_of_vehicles) max_num_veh, MIN(measurement_time) first_meas_time, MAX(measurement_time) last_meas_time FROM traffic");
-                //DataFrame df = sqlContext.createDataFrame(rdd,schema);
-                resultsDF.show();
-		kuduContext.upsertRows(resultsDF, "impala::default.traffic_conditions");
-                //df.show(); 
+                String query = "SELECT UNIX_TIMESTAMP() * 1000 as_of_time, ROUND(AVG(number_of_vehicles),2)"         +
+                                       "avg_num_veh, MIN(number_of_vehicles) min_num_veh, "                          +
+                                       "MAX(number_of_vehicles) max_num_veh, MIN(measurement_time) first_meas_time," +
+                                       "MAX(measurement_time) last_meas_time FROM traffic";
+                DataFrame resultsDF = sqlContext.sql(query);
+                //resultsDF.show();
+                kuduContext.upsertRows(resultsDF, "impala::default.traffic_conditions");
                 return null;
-            } 
+            }
         });
         
         ssc.start();
