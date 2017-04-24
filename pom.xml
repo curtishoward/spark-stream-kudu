@@ -13,7 +13,7 @@
   <properties>
     <scala.lib.version>2.10.5</scala.lib.version>
     <spark.core.version>1.6.0-cdh5.10.0</spark.core.version>
-    <maven.version>3.6.1</maven.version>
+    <maven.version>2.3.1</maven.version>
   </properties>
 
   <repositories>
@@ -69,8 +69,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven.version}</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>1.7</source>
+          <target>1.7</target>
         </configuration>
       </plugin>
       <plugin>

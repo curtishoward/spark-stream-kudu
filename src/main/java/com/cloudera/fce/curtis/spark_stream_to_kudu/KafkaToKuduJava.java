@@ -65,8 +65,8 @@ public class KafkaToKuduJava {
       
         JavaSparkContext sc = new JavaSparkContext(new SparkConf());
         JavaStreamingContext ssc = new JavaStreamingContext(sc, new Duration(5000));
-        SQLContext sqlContext = new SQLContext(sc);
-        KuduContext kuduContext = new KuduContext("curtis-pa-1.vpc.cloudera.com:7051");   
+        final SQLContext sqlContext = new SQLContext(sc);
+        final KuduContext kuduContext = new KuduContext("curtis-pa-2.vpc.cloudera.com:7051");   
 
         Map<String, String> params = new HashMap<>();
         params.put("metadata.broker.list", brokersArgument);
@@ -88,7 +88,10 @@ public class KafkaToKuduJava {
                     //public Tuple2<Long, Integer> call(Tuple2<String, String> kafkaMessage) {
                        //return new Tuple2<Long, Integer>(Long.parseLong(kafkaMessage._2().split(",")[0]),
                        //                                 Integer.parseInt(kafkaMessage._2().split(",")[1]));
-                       return RowFactory.create(Long.parseLong(kafkaMessage._2().split(",")[0]), Long.parseLong(kafkaMessage._2().split(",")[1].trim()));
+                       String[] flds = kafkaMessage._2().split(",");
+		       Long measure = Long.parseLong(flds[0]);
+		       Integer vehicles = Integer.parseInt(flds[1].trim());
+     		       return RowFactory.create(measure,vehicles);
                     }
                 });
               
@@ -96,8 +99,11 @@ public class KafkaToKuduJava {
                     DataTypes.createStructField("measurement_time", DataTypes.LongType, false),
                     DataTypes.createStructField("number_of_vehicles", DataTypes.IntegerType, true)});
                 DataFrame df = sqlContext.createDataFrame(fieldsRdd,schema);
+                df.registerTempTable("traffic");
+		DataFrame resultsDF = sqlContext.sql("SELECT UNIX_TIMESTAMP() * 1000 as_of_time, ROUND(AVG(number_of_vehicles), 2) avg_num_veh, MIN(number_of_vehicles) min_num_veh, MAX(number_of_vehicles) max_num_veh, MIN(measurement_time) first_meas_time, MAX(measurement_time) last_meas_time FROM traffic");
                 //DataFrame df = sqlContext.createDataFrame(rdd,schema);
-                df.show();
+                resultsDF.show();
+		kuduContext.upsertRows(resultsDF, "impala::default.traffic_conditions");
                 //df.show(); 
                 return null;
             } 
@@ -106,5 +112,4 @@ public class KafkaToKuduJava {
         ssc.start();
         ssc.awaitTermination();
     }
-    
 }
