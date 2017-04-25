@@ -46,7 +46,8 @@ public class KafkaToKuduJava {
         JavaSparkContext sc             = new JavaSparkContext(sparkConf);
         JavaStreamingContext ssc        = new JavaStreamingContext(sc, new Duration(5000));
         final SQLContext sqlContext     = new SQLContext(sc);
-        // Initialized our Kudu context with a comma separated list of masters
+
+	// Initialized our Kudu context with a comma separated list of masters
 	final KuduContext kuduContext   = new KuduContext(args[1]);   
 
         Set<String> topicsSet           = new HashSet<String>(Arrays.asList("traffic"));
@@ -56,17 +57,22 @@ public class KafkaToKuduJava {
         JavaPairDStream<String, String> dstream = KafkaUtils.createDirectStream(
                 ssc, String.class, String.class, StringDecoder.class, 
 		StringDecoder.class, kafkaParams, topicsSet);
-        JavaPairDStream<String, String> windowedStream = dstream.window(new Duration(60000));
+
+	JavaPairDStream<String, String> windowedStream = dstream.window(new Duration(60000));
 
         windowedStream.foreachRDD(new Function<JavaPairRDD<String, String>, Void>() {
+
             @Override
             public Void call(JavaPairRDD<String, String> rdd) throws Exception {
+
                 JavaRDD<Row> fieldsRdd = rdd.map(new Function<Tuple2<String,String>, Row>() {
+
                     @Override
                     public Row call(Tuple2<String, String> rec) {
-                        String[] flds     = rec._2().split(",");
+                        String[] flds    = rec._2().split(",");
 		        Long measure     = Long.parseLong(flds[0]);
 		        Integer vehicles = Integer.parseInt(flds[1].trim());
+
      		        return RowFactory.create(measure,vehicles);
                     }
                 });
@@ -74,18 +80,23 @@ public class KafkaToKuduJava {
                 StructType schema = DataTypes.createStructType(new StructField[] {
                     DataTypes.createStructField("measurement_time", DataTypes.LongType, false),
                     DataTypes.createStructField("number_of_vehicles", DataTypes.IntegerType, true)});
+
                 DataFrame dataFrame = sqlContext.createDataFrame(fieldsRdd,schema);
                 dataFrame.registerTempTable("traffic");
-                String query = "SELECT UNIX_TIMESTAMP() * 1000 as_of_time, ROUND(AVG(number_of_vehicles),2)"         +
-                                       "avg_num_veh, MIN(number_of_vehicles) min_num_veh, "                          +
-                                       "MAX(number_of_vehicles) max_num_veh, MIN(measurement_time) first_meas_time," +
-                                       "MAX(measurement_time) last_meas_time FROM traffic";
-                dataFrame.show();
+
+		String query = "SELECT UNIX_TIMESTAMP() * 1000 as_of_time,"           +
+			       "       ROUND(AVG(number_of_vehicles),2) avg_num_veh," +
+			       "       MIN(number_of_vehicles) min_num_veh,"          +
+                               "       MAX(number_of_vehicles) max_num_veh,"          +
+			       "       MIN(measurement_time) first_meas_time,"        +
+                               "       MAX(measurement_time) last_meas_time"          +
+			       "FROM traffic";
                 DataFrame resultsDataFrame = sqlContext.sql(query);
 
-		// The KuduContext allows us to apply entire dataframes as a batch operation on the Kudu table (upsert in our case)
+		// KuduContext allows us to apply a dataframe as a batch operation (e.g. upsert) on the Kudu table
 		kuduContext.upsertRows(resultsDataFrame, "impala::default.traffic_conditions");
-                return null;
+
+		return null;
             }
         });
         
