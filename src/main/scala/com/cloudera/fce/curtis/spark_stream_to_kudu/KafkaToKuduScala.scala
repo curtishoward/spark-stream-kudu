@@ -29,8 +29,7 @@ object KafkaToKuduScala {
     windowedStream.foreachRDD { rdd =>
        import sqlContext.implicits._
 
-       val dataFrame = rdd
-	                  .map(rec => (rec._2.split(",")(0).toLong,rec._2.split(",")(1).toInt))
+       val dataFrame = rdd.map(rec => (rec._2.split(",")(0).toLong,rec._2.split(",")(1).toInt))
 			  .toDF("measurement_time","number_of_vehicles")
        dataFrame.registerTempTable("traffic")
 
