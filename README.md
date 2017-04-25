@@ -1,4 +1,4 @@
-# spark_stream_to_kudu
+# Spark Streaming -to- Kudu Examples and Comparison with Equivalent Using Envelope
 
 Programmatic implementations of the Envelope project [traffic sample](https://github.com/cloudera-labs/envelope/tree/master/examples/traffic) functionality as Java and Scala, as an example of *Kafka -to- Spark Streaming -to- Kudu* Spark code, and comparison with Envelope's [configuration-only approach](https://github.com/cloudera-labs/envelope/blob/master/examples/traffic/traffic.conf) to implement the same thing.
 
