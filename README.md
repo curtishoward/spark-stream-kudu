@@ -14,9 +14,11 @@ Tested with: CDH 5.10 (Spark 1.6), Cloudera Kafka 2.1 (Apache 0.10), Kudu 1.2
 
     ```
     /usr/bin/kafka-topics --create --zookeeper curtis-pa-2.vpc.cloudera.com:2181 --replication-factor 1 --topic traffic --partitions 1
+    ```
+    ```
     while true; do echo "`date +%s%N | cut -b1-13`,$((RANDOM % 100))"; sleep 1; done | /usr/bin/kafka-console-producer --broker-list curtis-pa-1:9092 --topic traffic
     ```
-4. Run either the Scala or Java Spark Streaming apps, **replacing the comma separated lists of kafka brokers and kudu masters**
+4. Run either the Scala or Java Spark Streaming application, **replacing the comma separated lists of kafka brokers and kudu masters**
 
     ```
     spark-submit --class com.cloudera.fce.curtis.spark_stream_to_kudu.KafkaToKuduJava target/spark_stream_to_kudu-1.0-jar-with-dependencies.jar  kafka-broker-1:9092,... kudu-master-1:7051,...
