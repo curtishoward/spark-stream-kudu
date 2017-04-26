@@ -41,18 +41,21 @@ import scala.Tuple2;
 public class KafkaToKuduJava {
     
     public static void main(String[] args) throws Exception {
-    
+        final String kuduTableName      = "impala::default.traffic_conditions";
+        final String kafkaBrokers       = args[0];
+	final String kuduMasters        = args[1];
+
 	SparkConf sparkConf             = new SparkConf().setAppName("KafkaToKuduJava"); 
         JavaSparkContext sc             = new JavaSparkContext(sparkConf);
         JavaStreamingContext ssc        = new JavaStreamingContext(sc, new Duration(5000));
         final SQLContext sqlContext     = new SQLContext(sc);
 
 	// Initialized our Kudu context with a comma separated list of masters
-	final KuduContext kuduContext   = new KuduContext(args[1]);   
+	final KuduContext kuduContext   = new KuduContext(kuduMasters);   
 
         Set<String> topicsSet           = new HashSet<String>(Arrays.asList("traffic"));
         Map<String, String> kafkaParams = new HashMap<>();
-        kafkaParams.put("metadata.broker.list", args[0]);
+        kafkaParams.put("metadata.broker.list", kafkaBrokers);
 
         JavaPairDStream<String, String> dstream = KafkaUtils.createDirectStream(
                 ssc, String.class, String.class, StringDecoder.class, 
@@ -89,12 +92,31 @@ public class KafkaToKuduJava {
 			       "       MIN(number_of_vehicles) min_num_veh,"          +
                                "       MAX(number_of_vehicles) max_num_veh,"          +
 			       "       MIN(measurement_time) first_meas_time,"        +
-                               "       MAX(measurement_time) last_meas_time"          +
+                               "       MAX(measurement_time) last_meas_time "         +
 			       "FROM traffic";
                 DataFrame resultsDataFrame = sqlContext.sql(query);
 
-		// KuduContext allows us to apply a dataframe as a batch operation (e.g. upsert) on the Kudu table
-		kuduContext.upsertRows(resultsDataFrame, "impala::default.traffic_conditions");
+                /* NOTE: All 3 methods provided below are equivalent UPSERT operations on the 
+		         Kudu table and are idempotent, so we can run all 3 in this example 
+			 (although only 1 is necessary) */
+
+                // Method 1: All kudu operations can be used with KuduContext (insert, 
+		//           insert-ignore, upsert, ..) 
+		kuduContext.upsertRows(resultsDataFrame, kuduTableName);
+
+                // Method 2: The DataFrames API allows provides the 'write' function (results 
+		//           in Kudu upsert) 
+                final Map<String, String> kuduOptions = new HashMap<>();
+                kuduOptions.put("kudu.table",  kuduTableName);
+                kuduOptions.put("kudu.master", kuduMasters);
+                resultsDataFrame.write().format("org.apache.kudu.spark.kudu")
+			        .options(kuduOptions).mode("append").save();
+
+                // Method 3: A SQL INSERT through SQLContext also results in a Kudu Upsert
+                resultsDataFrame.registerTempTable("traffic_results");
+                sqlContext.read().format("org.apache.kudu.spark.kudu").options(kuduOptions).load()
+			  .registerTempTable(kuduTableName);
+                sqlContext.sql("INSERT INTO TABLE `" + kuduTableName + "` SELECT * FROM traffic_results");
 
 		return null;
             }
