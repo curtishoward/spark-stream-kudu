@@ -1,10 +1,10 @@
 ### Spark Streaming-to-Kudu sample code (and code-as-a-config using Envelope)
 
-Programmatic implementations of the Cloudera Envelope [traffic sample](https://github.com/cloudera-labs/envelope/tree/master/examples/traffic), as an example of *Kafka --> Kudu* Spark Streaming code, and comparison with Envelope's [configuration-only approach](https://github.com/cloudera-labs/envelope/blob/master/examples/traffic/traffic.conf).
+Programmatic implementations of the Cloudera Envelope [traffic sample](https://github.com/cloudera-labs/envelope/tree/master/examples/traffic), demonstrating Spark Streaming code writing to Kudu, versus Envelope's [configuration-only approach](https://github.com/cloudera-labs/envelope/blob/master/examples/traffic/traffic.conf).
 
 Tested with: CDH 5.10 (Spark 1.6), Cloudera Kafka 2.1 (Apache 0.10), Kudu 1.2
 
-1. Build from the project root:
+1. Build from the project root directory:
 
     ```
     mvn clean package
