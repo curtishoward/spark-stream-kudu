@@ -18,13 +18,17 @@ Tested with: CDH 5.10 (Spark 1.6), Cloudera Kafka 2.1 (Apache 0.10), Kudu 1.2
     ```
     while true; do echo "`date +%s%N | cut -b1-13`,$((RANDOM % 100))"; sleep 1; done | /usr/bin/kafka-console-producer --broker-list curtis-pa-1:9092 --topic traffic
     ```
-4. Run either the Scala or Java Spark Streaming application, **replacing the comma separated lists of kafka brokers and kudu masters**
+4. Run either the Scala, Java or Python Spark Streaming application, **replacing the comma separated lists of kafka brokers and kudu masters**
 
     ```
     spark-submit --class com.cloudera.fce.curtis.spark_stream_to_kudu.KafkaToKuduJava target/spark_stream_to_kudu-1.0-jar-with-dependencies.jar  kafka-broker-1:9092,... kudu-master-1:7051,...
     ```
     ```
     spark-submit --class com.cloudera.fce.curtis.spark_stream_to_kudu.KafkaToKuduScala target/spark_stream_to_kudu-1.0-jar-with-dependencies.jar kafka-broker-1:9092,... kudu-master-1:7051,...
+    ```
+    PySpark:  after building the Scala/Java examples in step 1, a kudu-spark_2...jar file should be available, typically under your *~/.m2* path
+    ```
+    spark-submit --jars /var/lib/hadoop-hdfs/.m2/repository/org/apache/kudu/kudu-spark_2.10/1.2.0-cdh5.10.0/kudu-spark_2.10-1.2.0-cdh5.10.0.jar src/main/python/kafka_to_kudu.py kafka-broker-1:9092,... kudu-master-1:7051    ,...
     ```
 5. View the resulting data in Kudu from Impala:
 
