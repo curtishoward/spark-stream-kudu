@@ -19,7 +19,7 @@ object KafkaToKuduScala {
     val sc          = new SparkContext(sparkConf)
     val ssc         = new StreamingContext(sc, Seconds(5))
     val sqlContext  = new SQLContext(sc)
-    // Initialized our Kudu context with a comma separated list of masters
+
     val kuduContext = new KuduContext(kuduMasters) 
 
     val topicsSet       = Set("traffic") 
@@ -44,18 +44,19 @@ object KafkaToKuduScala {
 						    MAX(measurement_time) last_meas_time 
 						FROM traffic""")
 
-       /* NOTE: All 3 methods provided below are equivalent UPSERT operations on the Kudu table and 
+       /* NOTE: All 3 methods provided  are equivalent UPSERT operations on the Kudu table and 
 	        are idempotent, so we can run all 3 in this example (although only 1 is necessary) */
 
-       // Method 1: All kudu operations can be used with KuduContext (insert, insert-ignore, upsert, ..) 
+       // Method 1: All kudu operations can be used with KuduContext (INSERT, INSERT IGNORE, 
+       //           UPSERT, UPDATE, DELETE) 
        kuduContext.upsertRows(resultsDataFrame, kuduTableName)
 
-       // Method 2: The DataFrames API allows provides the 'write' function (results in Kudu upsert) 
+       // Method 2: The DataFrames API provides the 'write' function (results in a Kudu UPSERT) 
        val kuduOptions: Map[String, String] = Map("kudu.table"  -> kuduTableName,
        	                                          "kudu.master" -> kuduMasters)
        resultsDataFrame.write.options(kuduOptions).mode("append").kudu
 
-       // Method 3: A SQL INSERT through SQLContext also results in a Kudu Upsert
+       // Method 3: A SQL INSERT through SQLContext also results in a Kudu UPSERT
        resultsDataFrame.registerTempTable("traffic_results")
        sqlContext.read.options(kuduOptions).kudu.registerTempTable(kuduTableName)
        sqlContext.sql(s"INSERT INTO TABLE `$kuduTableName` SELECT * FROM traffic_results")

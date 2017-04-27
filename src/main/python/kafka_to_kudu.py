@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
         dataFrame = rdd.map(lambda rec: (long(rec[1].split(",")[0]), int(rec[1].split(",")[1].rstrip())))\
                        .toDF(["measurement_time","number_of_vehicles"])
-        # TODO: Understand why num vehicles interpreted as 'long' and not 'int' by toDF() 
+        # TODO: Why is num vehicles interpreted as 'long' and not 'int' by toDF() 
 	#       (cast to 'int' for now so that min/max_num_veh fields align with Kudu table schema)
         castDF = dataFrame.withColumn("number_of_vehicles_int", dataFrame.number_of_vehicles.cast("int"))\
                  .drop("number_of_vehicles")
@@ -44,11 +44,11 @@ if __name__ == "__main__":
         # NOTE:  The 2 methods below are equivalent UPSERT operations on the Kudu table and 
 	#        are idempotent, so we can run both in this example (although only 1 is necessary) 
 
-        # Method 1: Use DataFrames API allows provides the 'write' function (results in Kudu upsert) 
+        # Method 1: Use DataFrames API provides the 'write' function (results in Kudu UPSERT) 
         resultsDF.write.format('org.apache.kudu.spark.kudu').option('kudu.master',kuduMasters)\
                  .option('kudu.table',kuduTableName).mode("append").save()
 
-        # Method 2: A SQL INSERT through SQLContext also results in a Kudu Upsert
+        # Method 2: A SQL INSERT through SQLContext also results in a Kudu UPSERT
         resultsDF.registerTempTable("traffic_results")
 	sqlContext.read.format('org.apache.kudu.spark.kudu').option('kudu.master',kuduMasters)\
                   .option('kudu.table',kuduTableName).load().registerTempTable(kuduTableName)

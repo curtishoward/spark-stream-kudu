@@ -50,7 +50,6 @@ public class KafkaToKuduJava {
         JavaStreamingContext ssc        = new JavaStreamingContext(sc, new Duration(5000));
         final SQLContext sqlContext     = new SQLContext(sc);
 
-	// Initialized our Kudu context with a comma separated list of masters
 	final KuduContext kuduContext   = new KuduContext(kuduMasters);   
 
         Set<String> topicsSet           = new HashSet<String>(Arrays.asList("traffic"));
@@ -96,23 +95,23 @@ public class KafkaToKuduJava {
 			       "FROM traffic";
                 DataFrame resultsDataFrame = sqlContext.sql(query);
 
-                /* NOTE: All 3 methods provided below are equivalent UPSERT operations on the 
+                /* NOTE: All 3 methods provided are equivalent UPSERT operations on the 
 		         Kudu table and are idempotent, so we can run all 3 in this example 
 			 (although only 1 is necessary) */
 
-                // Method 1: All kudu operations can be used with KuduContext (insert, 
-		//           insert-ignore, upsert, ..) 
+                // Method 1: All kudu operations can be used with KuduContext (INSERT, INSERT IGNORE, 
+		//           UPSERT, UPDATE, DELETE) 
 		kuduContext.upsertRows(resultsDataFrame, kuduTableName);
 
-                // Method 2: The DataFrames API allows provides the 'write' function (results 
-		//           in Kudu upsert) 
+                // Method 2: The DataFrames API  provides the 'write' function (results 
+		//           in a Kudu UPSERT) 
                 final Map<String, String> kuduOptions = new HashMap<>();
                 kuduOptions.put("kudu.table",  kuduTableName);
                 kuduOptions.put("kudu.master", kuduMasters);
                 resultsDataFrame.write().format("org.apache.kudu.spark.kudu")
 			        .options(kuduOptions).mode("append").save();
 
-                // Method 3: A SQL INSERT through SQLContext also results in a Kudu Upsert
+                // Method 3: A SQL INSERT through SQLContext also results in a Kudu UPSERT 
                 resultsDataFrame.registerTempTable("traffic_results");
                 sqlContext.read().format("org.apache.kudu.spark.kudu").options(kuduOptions).load()
 			  .registerTempTable(kuduTableName);
