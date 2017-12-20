@@ -2,7 +2,7 @@
 
 Programmatic implementations of the Cloudera Envelope [traffic sample](https://github.com/cloudera-labs/envelope/tree/master/examples/traffic) in Scala, Java and Python.
 
-Tested with: CDH 5.10 (Spark 1.6), Cloudera Kafka 2.1 (Apache 0.10), Kudu 1.2
+Tested with: CDH 5.13.1, Spark 2.1.0, Cloudera Kafka 2.1 (Apache 0.10), Kudu 1.5
 
 #### To run the applications:
 
@@ -25,14 +25,14 @@ Tested with: CDH 5.10 (Spark 1.6), Cloudera Kafka 2.1 (Apache 0.10), Kudu 1.2
 5. Run either the Scala, Java or Python Spark Streaming application (replace kafka brokers and kudu masters parameters):
 
     ```
-    spark-submit --class com.cloudera.fce.curtis.spark_stream_to_kudu.KafkaToKuduJava target/spark_stream_to_kudu-1.0-jar-with-dependencies.jar  kafka-broker-1:9092,... kudu-master-1:7051,...
+    SPARK_KAFKA_VERSION=0.10 spark2-submit --class com.cloudera.fce.curtis.spark_stream_to_kudu.KafkaToKuduJava target/spark_stream_to_kudu-1.0-jar-with-dependencies.jar kafka-broker-1:9092,... kudu-master-1:7051,...
     ```
     ```
-    spark-submit --class com.cloudera.fce.curtis.spark_stream_to_kudu.KafkaToKuduScala target/spark_stream_to_kudu-1.0-jar-with-dependencies.jar kafka-broker-1:9092,... kudu-master-1:7051,...
+    SPARK_KAFKA_VERSION=0.10 spark2-submit --class com.cloudera.fce.curtis.spark_stream_to_kudu.KafkaToKuduScala target/spark_stream_to_kudu-1.0-jar-with-dependencies.jar kafka-broker-1:9092,... kudu-master-1:7051,...
     ```
     *PySpark:*  after building Scala/Java code in step 1, a kudu-spark_2...jar file should be available, typically under your *~/.m2* path
     ```
-    spark-submit --jars /var/lib/hadoop-hdfs/.m2/repository/org/apache/kudu/kudu-spark_2.10/1.2.0-cdh5.10.0/kudu-spark_2.10-1.2.0-cdh5.10.0.jar src/main/python/kafka_to_kudu.py kafka-broker-1:9092,... kudu-master-1:7051    ,...
+    spark-submit --jars ~/.m2/repository/org/apache/kudu/kudu-spark2_2.11/1.5.0-cdh5.13.1/kudu-spark2_2.11-1.5.0-cdh5.13.1.jar src/main/python/kafka_to_kudu.py kafka-broker-1:9092,... kudu-master-1:7051    ,...
     ```
 6. View the results in Kudu from Impala:
 
