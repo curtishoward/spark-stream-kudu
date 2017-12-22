@@ -46,13 +46,14 @@ import scala.Tuple2;
 public class KafkaToKuduJava {
     
     public static void main(String[] args) throws Exception {
-        final String kuduTableName      = "impala::default.traffic_conditions";
+        final String kuduTableName      = "traffic_conditions";
         final String kafkaBrokers       = args[0];
 	final String kuduMasters        = args[1];
 
 	SparkConf sparkConf             = new SparkConf().setAppName("KafkaToKuduJava"); 
         final SparkSession spark        = SparkSession.builder().config(sparkConf).getOrCreate();
         JavaStreamingContext ssc        = new JavaStreamingContext(new JavaSparkContext(spark.sparkContext()), new Duration(5000));
+        final KuduContext kuduContext   = new KuduContext(kuduMasters, spark.sparkContext());
 
         Set<String> topicsSet           = new HashSet<String>(Arrays.asList("traffic"));
         Map<String, Object> kafkaParams = new HashMap<>();
@@ -109,12 +110,27 @@ public class KafkaToKuduJava {
 			       "FROM traffic";
                 Dataset resultsDataFrame = spark.sql(query);
 
+                /* NOTE: All 3 methods provided are equivalent UPSERT operations on the 
+                         Kudu table and are idempotent, so we can run all 3 in this example 
+                         (although only 1 is necessary) */
+
+                // Method 1: All kudu operations can be used with KuduContext (INSERT, INSERT IGNORE, 
+                //           UPSERT, UPDATE, DELETE) 
+                kuduContext.upsertRows(resultsDataFrame, kuduTableName);
+
+                // Method 2: The DataFrames API  provides the 'write' function (results 
+                //           in a Kudu UPSERT) 
                 final Map<String, String> kuduOptions = new HashMap<>();
                 kuduOptions.put("kudu.table",  kuduTableName);
                 kuduOptions.put("kudu.master", kuduMasters);
                 resultsDataFrame.write().format("org.apache.kudu.spark.kudu")
 			        .options(kuduOptions).mode("append").save();
 
+               // Method 3: A SQL INSERT through SQLContext also results in a Kudu UPSERT 
+               resultsDataFrame.registerTempTable("traffic_results");
+               spark.read().format("org.apache.kudu.spark.kudu").options(kuduOptions).load()
+                    .registerTempTable(kuduTableName);
+               spark.sql("INSERT INTO TABLE `" + kuduTableName + "` SELECT * FROM traffic_results");
             }
         });
         

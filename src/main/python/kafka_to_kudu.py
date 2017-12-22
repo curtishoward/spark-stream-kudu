@@ -9,7 +9,7 @@ if __name__ == "__main__":
         print("Usage: kafka_to_kudu.py <kafka-brokers> <kudu-masters>")
         exit(-1)
 
-    kuduTableName = "impala::default.traffic_conditions"
+    kuduTableName = "traffic_conditions"
     kafkaBrokers, kuduMasters = sys.argv[1:]
     topicSet =  ["traffic"]
 
@@ -37,8 +37,20 @@ if __name__ == "__main__":
 					      MAX(measurement_time) last_meas_time  
                                        FROM traffic""")
 
+        # NOTE:  The 2 methods below are equivalent UPSERT operations on the Kudu table and 
+        #        are idempotent, so we can run both in this example (although only 1 is necessary) 
+
+        # Method 1: Use DataFrames API provides the 'write' function (results in Kudu UPSERT)
         resultsDF.write.format('org.apache.kudu.spark.kudu').option('kudu.master',kuduMasters)\
                  .option('kudu.table',kuduTableName).mode("append").save()
+
+        # Method 2: A SQL INSERT through SQLContext also results in a Kudu UPSERT
+        resultsDF.registerTempTable("traffic_results")
+        spark.read.format('org.apache.kudu.spark.kudu').option('kudu.master',kuduMasters)\
+             .option('kudu.table',kuduTableName).load().registerTempTable(kuduTableName)
+        spark.sql("INSERT INTO TABLE `" + kuduTableName + "` SELECT * FROM traffic_results")
+
+        # PySpark KuduContext not yet available (https://issues.apache.org/jira/browse/KUDU-1603)
 
     windowedStream.foreachRDD(process)
 

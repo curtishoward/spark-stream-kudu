@@ -11,7 +11,7 @@ Tested with: CDH 5.13.1, Spark 2.1.0, Cloudera Kafka 3.0 (Apache 0.11.0), Kudu 1
     ```
     mvn clean package
     ```
-2. Create the target Kudu table using the Envelope traffic example [Impala DDL script](https://github.com/cloudera-labs/envelope/blob/master/examples/traffic/create_traffic_conditions.sql)
+2. Create the target Kudu table using the Envelope traffic example [Impala DDL script](ddl/create_impala_kudu_table.sql)
 3. Create the Kafka *traffic* topic (replication and partitions set to 1, for testing):
 
     ```
@@ -32,7 +32,7 @@ Tested with: CDH 5.13.1, Spark 2.1.0, Cloudera Kafka 3.0 (Apache 0.11.0), Kudu 1
     ```
     *PySpark:*  after building Scala/Java code in step 1, a kudu-spark_2...jar file should be available, typically under your *~/.m2* path
     ```
-    spark-submit --jars ~/.m2/repository/org/apache/kudu/kudu-spark2_2.11/1.5.0-cdh5.13.1/kudu-spark2_2.11-1.5.0-cdh5.13.1.jar src/main/python/kafka_to_kudu.py kafka-broker-1:9092,... kudu-master-1:7051    ,...
+    spark2-submit --jars ~/.m2/repository/org/apache/kudu/kudu-spark2_2.11/1.5.0-cdh5.13.1/kudu-spark2_2.11-1.5.0-cdh5.13.1.jar src/main/python/kafka_to_kudu.py kafka-broker-1:9092,... kudu-master-1:7051    ,...
     ```
 6. View the results in Kudu from Impala:
 
