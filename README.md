@@ -1,6 +1,6 @@
 ### Spark Streaming and Kudu Integration Sample Code
 
-Programmatic implementations of the Cloudera Envelope [traffic sample](https://github.com/cloudera-labs/envelope/tree/master/examples/traffic) in Scala, Java and Python.
+Programmatic implementations of the Cloudera Envelope [traffic sample](ddl/create_impala_kudu_table.sql) in Scala, Java and Python.
 
 Tested with: CDH 5.13.1, Spark 2.1.0, Cloudera Kafka 3.0 (Apache 0.11.0), Kudu 1.5 (See the _spark1.6_ branch for Spark 1.6 examples)
 
