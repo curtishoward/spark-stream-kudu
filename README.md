@@ -2,7 +2,7 @@
 
 Programmatic implementations of the Cloudera Envelope [traffic sample](https://github.com/cloudera-labs/envelope/tree/master/examples/traffic) in Scala, Java and Python.
 
-Tested with: CDH 5.13.1, Spark 2.1.0, Cloudera Kafka 3.0 (Apache 0.11.0), Kudu 1.5
+Tested with: CDH 5.13.1, Spark 2.1.0, Cloudera Kafka 3.0 (Apache 0.11.0), Kudu 1.5 (See the _spark1.6_ branch for Spark 1.6 examples)
 
 #### To run the applications:
 
@@ -15,12 +15,12 @@ Tested with: CDH 5.13.1, Spark 2.1.0, Cloudera Kafka 3.0 (Apache 0.11.0), Kudu 1
 3. Create the Kafka *traffic* topic (replication and partitions set to 1, for testing):
 
     ```
-    /usr/bin/kafka-topics --create --zookeeper curtis-pa-2.vpc.cloudera.com:2181 --replication-factor 1 --topic traffic --partitions 1
+    /usr/bin/kafka-topics --create --zookeeper zookeeper-hostname:2181 --replication-factor 1 --topic traffic --partitions 1
     ```
 4. Produce simulated data on the topic (replace the kafka broker/port list parameter):
 
     ```
-    while true; do echo "`date +%s%N | cut -b1-13`,$((RANDOM % 100))"; sleep 1; done | /usr/bin/kafka-console-producer --broker-list curtis-pa-1:9092 --topic traffic
+    while true; do echo "`date +%s%N | cut -b1-13`,$((RANDOM % 100))"; sleep 1; done | /usr/bin/kafka-console-producer --broker-list kafka-broker-1:9092,... --topic traffic
     ```
 5. Run either the Scala, Java or Python Spark Streaming application (replace kafka brokers and kudu masters parameters):
 
